@@ -1,0 +1,17 @@
+# syntax=gcr.io/host-project-f966/dockerfile:1
+# Build step
+FROM gcr.io/deeplearning-platform-release/pytorch-gpu.1-9 AS builder
+WORKDIR /component
+
+# TODO: Move this to another repo and place the model in a base image
+RUN mkdir -p ./src/models/codes_model
+COPY build/pytorch_model.bin ./src/models/codes_model
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r /component/requirements.txt
+
+COPY ./src /component/src
+COPY ./tests /component/tests
+
+RUN python -m pytest --junitxml=/component/test-report.xml
+
