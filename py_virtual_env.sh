@@ -1,3 +1,5 @@
+# Example: ./pyvirtinit $HOME/.
+
 PYTHON_GCP_REPO="https://us-central1-python.pkg.dev/gcs_project_id/repo_name"
 
 # Check python version
