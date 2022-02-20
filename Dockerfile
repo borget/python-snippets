@@ -1,25 +1,30 @@
 # syntax=gcr.io/host-project-f966/dockerfile:1
 # Build step
 FROM gcr.io/host-project-f966/python-builder-base:v1 AS builder
-WORKDIR /component
+WORKDIR /app
 
-# TODO: Move this to another repo and place the model in a base image
-RUN mkdir -p ./src/models/codes_model
-# COPY build/pytorch_model.bin ./src/models/codes_model
-COPY requirements.txt .
+# Copy Source
+COPY . /app
 
-#   Set variables for python virtual env. https://pythonspeed.com/articles/activate-virtualenv-dockerfile/
-ENV VIRTUAL_ENV=/component/.venv
+ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-#   setup python virtual environment ad get packages
-RUN rm -rf /component/.venv &&\
+ENV PYTHONPATH="/app"
+# Setup python virtual environment to get packages from artifact registry
+RUN rm -rf /app/.venv &&\
     pyvirtinit
 
-          
-ENV GOOGLE_APPLICATION_CREDENTIALS="${HOME}/.config/gcloud/application_default_credentials.json"
-RUN --mount=type=secret,required=true,id=gcp-creds,target=$GOOGLE_APPLICATION_CREDENTIALS pip install --no-cache-dir -r /component/requirements.txt
-RUN pip install --no-cache-dir -r /component/requirements.txt
+ENV GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-creds
+RUN --mount=type=secret,required=true,id=gcp-creds,target=/app/gcp-creds pip install --no-cache-dir -r /app/requirements.txt
 
-COPY ./src /component/src
 
-# ENTRYPOINT python3 /component/src/run_predictions.py
+# Package Step
+FROM us-central1-docker.pkg.dev/dev-env-0884/lumiata-dev-container-registry/python:3.7-slim-buster AS package
+
+WORKDIR /app
+
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV PYTHONPATH="/app"
+
+# Copy files from builder container
+COPY --from=builder /app .
